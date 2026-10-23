@@ -1,0 +1,8 @@
+- insert:
+    - id: daily-checkin
+      name: dsh-daily-checkin
+      config:
+        enabled: true
+        time: '09:05'
+        timezone: Asia/Shanghai
+        providers: [trae, workbuddy, qoder, minimax]

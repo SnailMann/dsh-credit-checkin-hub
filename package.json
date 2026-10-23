@@ -1,0 +1,79 @@
+{
+  "name": "dsh-daily-checkin",
+  "version": "0.6.1",
+  "description": "Trae CN / WorkBuddy / Qoder CN / Qoder 国际版 / MiniMax Code 积分签到：每日定时领取，支持可视化设置、平台开关和签到记录。",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./package.json": "./package.json",
+    "./client": "./src/client.js",
+    "./locale/*": "./locale/*"
+  },
+  "bin": {
+    "dsh-daily-checkin": "./src/cli.js"
+  },
+  "files": [
+    "src",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE",
+    "THIRD-PARTY-LICENSE",
+    "MINIMAX-LICENSE",
+    "QODER-LICENSE",
+    "NOTICE.md",
+    "locale",
+    "settings-preview.jpg"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "doctor": "node src/cli.js doctor",
+    "checkin": "node src/cli.js run",
+    "status": "node src/cli.js status"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "undici": "7.30.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.4"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": {
+      "optional": true
+    }
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-plugin-manager"
+      ]
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SnailMann/dsh-credit-checkin-hub.git"
+  },
+  "homepage": "https://github.com/SnailMann/dsh-credit-checkin-hub#readme",
+  "bugs": {
+    "url": "https://github.com/SnailMann/dsh-credit-checkin-hub/issues"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "dsh-desktop",
+    "checkin",
+    "trae",
+    "workbuddy",
+    "qoder",
+    "minimax"
+  ]
+}

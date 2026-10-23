@@ -1,0 +1,23 @@
+node_modules/
+*.tgz
+.checkin-data/
+*.info
+*credential*.json
+
+# Local data and private verification artifacts
+.DS_Store
+.env
+.env.*
+!.env.example
+*.log
+coverage/
+/.local/
+/private/
+/artifacts/private/
+/.checkin-data/
+/settings.json
+/state.json
+*-auth.json
+/*-proof.*
+*.bak
+*.backup-*
