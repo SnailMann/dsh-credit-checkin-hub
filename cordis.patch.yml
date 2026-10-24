@@ -1,8 +1,3 @@
 - insert:
     - id: daily-checkin
       name: dsh-credit-checkin
-      config:
-        enabled: true
-        time: '11:00'
-        timezone: Asia/Shanghai
-        providers: [trae, workbuddy, qoder, minimax]

@@ -25,9 +25,9 @@ export class Runner {
     this.qoder = dependencies.qoder ?? new QoderAuth(this.config, this.transport, { signal: this.controller.signal })
     this.qoderGlobal = dependencies.qoderGlobal ?? new QoderAuth(this.config, this.transport, { signal: this.controller.signal, region: 'global' })
     if (!dependencies.readers) {
-      this.readers.minimax = () => this.minimax.credential()
-      this.readers.qoder = () => this.qoder.credential()
-      this.readers['qoder-global'] = () => this.qoderGlobal.credential()
+      this.readers.minimax = (_config, options) => this.minimax.credential(options)
+      this.readers.qoder = (_config, options) => this.qoder.credential(options)
+      this.readers['qoder-global'] = (_config, options) => this.qoderGlobal.credential(options)
     }
   }
   async status() {
@@ -61,24 +61,41 @@ export class Runner {
           continue
         }
         const day = checkinDay(provider, now, this.config.timezone)
-        let c, result
-        try { c = await this.readers[provider](this.config, { manual }) } catch (e) { result = safeError(e) }
+        let c, result, credentialKey = `${provider}:credentials`, credentialRevision, credentialPrevious, deferred
+        const skip = prev => !manual && prev?.day === day && (prev.attempts >= 4 || prev.retryable !== true || Date.parse(prev.nextAttemptAt) > now.getTime())
+        const beforeNetwork = revision => {
+          credentialRevision = revision
+          credentialKey = `${provider}:credentials:${revision}`
+          const failure = state.accounts[credentialKey]
+          // A rotation keeps its revision; a fresh login changes it. This lets
+          // credential and claim failures share one budget without trusting a
+          // local account ID before the server has verified it.
+          const prev = failure?.day === day ? failure : Object.values(state.accounts).find(entry => entry.provider === provider && entry.day === day && entry.credentialRevision === revision)
+          credentialPrevious = prev
+          if ((prev?.day === day && terminal.has(prev.status)) || skip(prev)) { deferred = prev; throw prev }
+        }
+        try { c = await this.readers[provider](this.config, { manual, beforeNetwork }) } catch (e) {
+          if (deferred && e === deferred) { results[provider] = { ...deferred, cached: true }; continue }
+          result = safeError(e)
+        }
         // Missing credentials also back off; successful future reads create an account-specific slot.
-        const key = `${provider}:${c?.key ?? 'credentials'}`
-        const prev = state.accounts[key]
+        const key = c ? `${provider}:${c.key}` : credentialKey
+        const prev = state.accounts[key] ?? (!c ? credentialPrevious : undefined)
         const sameDay = prev?.day === day
+        const sameGrant = !credentialRevision || !prev?.credentialRevision || prev.credentialRevision === credentialRevision
         if (sameDay && terminal.has(prev.status)) { results[provider] = { ...prev, cached: true }; continue }
-        if (!manual && sameDay && (prev.attempts >= 4 || prev.retryable !== true || Date.parse(prev.nextAttemptAt) > now.getTime())) {
+        if (sameGrant && skip(prev)) {
           results[provider] = { ...prev, cached: true }; continue
         }
         if (!result) {
           try { result = await this.checkers[provider](c, this.transport, this.controller.signal) }
           catch (e) { result = safeError(e) }
         }
-        const attempts = sameDay ? prev.attempts + 1 : 1
+        if (c) delete state.accounts[credentialKey]
+        const attempts = Math.max(sameDay && sameGrant ? prev.attempts : 0, credentialPrevious?.day === day ? credentialPrevious.attempts : 0) + 1
         const entry = { ...result, provider, day, at: now.toISOString(), attempts }
         if (result.retryable === true && attempts <= retries.length) entry.nextAttemptAt = new Date(now.getTime() + retries[attempts - 1]).toISOString()
-        state.accounts[key] = entry
+        state.accounts[key] = { ...entry, ...(credentialRevision ? { credentialRevision } : {}) }
         state.history.push(entry)
         state.history = state.history.slice(-100)
         // Bound old account records when the user switches accounts over time.

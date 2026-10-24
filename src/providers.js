@@ -2,18 +2,21 @@ import { fetch, EnvHttpProxyAgent } from 'undici'
 import { qoderSite } from './qoder-sites.js'
 import { CheckinError } from './errors.js'
 
-export function createTransport({ dispatcher = new EnvHttpProxyAgent() } = {}) {
+export function createTransport({ dispatcher = new EnvHttpProxyAgent(), timeoutMs = 20000 } = {}) {
   const transport = {
     async request(method, url, headers, body, signal, options = {}) {
+      const requestSignal = signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs)
       try {
         const response = await fetch(url, {
           method, headers: { ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...headers },
           ...(body !== undefined ? { body: options.form ? new URLSearchParams(body).toString() : JSON.stringify(body) } : {}), dispatcher, redirect: 'error',
-          signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(20000)]) : AbortSignal.timeout(20000),
+          signal: requestSignal,
         })
         if ([401, 403].includes(response.status)) throw new CheckinError('auth-or-verification', '登录已失效或需要客户端验证，请打开对应客户端处理后重试。')
         let doc
-        try { doc = await response.json() } catch {
+        try { doc = await response.json() } catch (e) {
+          // A body stream can fail after HTTP headers have already arrived.
+          if (requestSignal.aborted || !(e instanceof SyntaxError)) throw e
           if (!response.ok) throw new CheckinError(`http-${response.status}`, `签到服务返回 HTTP ${response.status}。`, response.status === 429 || response.status >= 500)
           throw new CheckinError('protocol', '签到服务未返回有效 JSON。')
         }

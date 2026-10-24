@@ -111,18 +111,35 @@ export class MiniMaxAuth {
     this.config = config; this.transport = transport; this.now = now
     this.controller = new AbortController()
     this.signal = signal ? AbortSignal.any([signal, this.controller.signal]) : this.controller.signal
-    this.state = { status: 'idle' }
+    this.state = { status: 'idle' }; this.epoch = 0; this.saving = Promise.resolve()
   }
   async status() {
     let connection = 'signed-out'
     try { const c = await readMinimaxLocal(this.config); connection = c.expiresAtMs && c.expiresAtMs <= this.now() && !(c.source === 'plugin' && c.refreshToken) ? 'expired' : 'connected' } catch {}
     return { connection, ...this.state }
   }
-  async save(c) {
-    const path = minimaxPaths(this.config).own, temp = `${path}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`
-    await mkdir(this.config.dataDir, { recursive: true, mode: 0o700 })
-    try { await writeFile(temp, JSON.stringify({ ...c, region: 'cn' }) + '\n', { mode: 0o600 }); await rename(temp, path) }
-    finally { await rm(temp, { force: true }) }
+  assertCurrent(epoch = this.epoch) {
+    if (this.signal.aborted) throw new CheckinError('cancelled', '插件已停止。')
+    if (epoch !== this.epoch) throw new CheckinError('account-changed', 'MiniMax Code 登录账号已变化，请重新执行签到。')
+  }
+  save(c, { epoch, replace = false, current = () => true } = {}) {
+    const task = this.saving.then(async () => {
+      const check = () => {
+        this.assertCurrent(epoch)
+        if (!current()) throw new CheckinError('cancelled', '此次登录已取消。')
+      }
+      check()
+      const path = minimaxPaths(this.config).own, temp = `${path}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`
+      await mkdir(this.config.dataDir, { recursive: true, mode: 0o700 })
+      try {
+        await writeFile(temp, JSON.stringify({ ...c, region: 'cn' }) + '\n', { mode: 0o600 })
+        check()
+        await rename(temp, path)
+        if (replace) this.epoch++
+      } finally { await rm(temp, { force: true }) }
+    })
+    this.saving = task.catch(() => {})
+    return task
   }
   grant(doc, previous) {
     let claims
@@ -133,22 +150,34 @@ export class MiniMaxAuth {
     if (!text(doc.access_token) || !text(doc.refresh_token ?? previous?.refreshToken) || !number(doc.expires_in) || doc.expires_in <= 0 || doc.token_type?.toLowerCase() !== 'bearer') throw protocol()
     return { accessToken: doc.access_token, refreshToken: doc.refresh_token ?? previous?.refreshToken, expiresAtMs: this.now() + doc.expires_in * 1000 }
   }
-  async credential() {
+  async credential(options = {}) {
     if (this.reading) return this.reading
-    this.reading = this.readCredential()
+    this.reading = this.readCredential(options)
     try { return await this.reading } finally { this.reading = undefined }
   }
-  async readCredential() {
+  async readCredential({ beforeNetwork } = {}) {
+    const epoch = this.epoch
     let c = await readMinimaxLocal(this.config)
+    const credentialRevision = c.credentialRevision ?? hash(c.accessToken)
+    this.assertCurrent(epoch)
+    beforeNetwork?.(credentialRevision)
     if (c.expiresAtMs && c.expiresAtMs <= this.now() + 60000) {
       if (c.source !== 'plugin' || !c.refreshToken) throw new CheckinError('signed-out', 'MiniMax Code 登录过期，请在积分签到设置页重新登录。')
       const doc = await this.transport.form(`${ACCOUNT}/oauth2/token`, { grant_type: 'refresh_token', refresh_token: c.refreshToken, client_id: CLIENT, scope: 'agent.default', audience: 'agent-backend' }, this.signal)
       if (doc.error) throw new CheckinError('signed-out', 'MiniMax Code 登录续期失败，请在积分签到设置页重新登录。')
-      c = { ...this.grant(doc, c), source: 'plugin' }
-      c.realUserID = await identity(c, this.transport, this.signal)
-      await this.save(c)
+      c = { ...this.grant(doc, c), source: 'plugin', identityPending: true, credentialRevision }
+      // Preserve rotated tokens before a separate identity request can fail.
+      // Pending grants cannot be returned for use until identity is verified.
+      await this.save(c, { epoch })
     }
-    if (!text(c.realUserID)) c.realUserID = await identity(c, this.transport, this.signal)
+    if (c.identityPending || !text(c.realUserID)) {
+      c.realUserID = await identity(c, this.transport, this.signal)
+      if (c.source === 'plugin') {
+        c.identityPending = false
+        await this.save(c, { epoch })
+      }
+    }
+    this.assertCurrent(epoch)
     return { accessToken: c.accessToken, realUserID: c.realUserID, key: hash(`minimax:${c.realUserID}`).slice(0, 24) }
   }
   async start() {
@@ -197,7 +226,7 @@ export class MiniMaxAuth {
       const c = this.grant(doc)
       c.realUserID = await identity(c, this.transport, this.signal)
       if (pending !== this.pending || this.signal.aborted) return
-      await this.save(c)
+      await this.save(c, { replace: true, current: () => pending === this.pending })
       this.pending = undefined; this.state = { status: 'authorized' }
     } catch (e) {
       if (pending !== this.pending || this.signal.aborted) return
@@ -206,5 +235,5 @@ export class MiniMaxAuth {
     }
   }
   cancel() { clearTimeout(this.timer); this.pending = undefined; this.state = { status: 'idle' }; return this.status() }
-  async dispose() { this.controller.abort(); clearTimeout(this.timer); this.pending = undefined; await Promise.allSettled([this.polling, this.starting, this.reading].filter(Boolean)) }
+  async dispose() { this.controller.abort(); clearTimeout(this.timer); this.pending = undefined; await Promise.allSettled([this.polling, this.starting, this.reading, this.saving].filter(Boolean)) }
 }

@@ -18,6 +18,7 @@ coverage/
 /settings.json
 /state.json
 *-auth.json
+*-refresh.json
 /*-proof.*
 *.bak
 *.backup-*

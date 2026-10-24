@@ -60,21 +60,52 @@ export class QoderAuth {
     this.controller = new AbortController()
     this.signal = signal ? AbortSignal.any([signal, this.controller.signal]) : this.controller.signal
     this.deviceIdentity = deviceIdentity ?? (uid => qoderDeviceIdentity(uid, this.config, this.signal, undefined, this.site))
-    this.state = { status: 'idle' }; this.epoch = 0
+    this.state = { status: 'idle' }; this.epoch = 0; this.saving = Promise.resolve()
   }
   async status() {
     let connection = 'signed-out'
     try {
-      const c = await readQoderSession(this.config, this.site)
+      const { session: c } = await this.loadSession()
       connection = this.needsUpgrade(c) ? 'upgrade-required' : c.expiresAtMs && c.expiresAtMs <= this.now() && !c.refreshToken ? 'expired' : 'connected'
     } catch {}
     return { connection, ...this.state }
   }
-  async save(c) {
-    const path = managedPath(this.config, this.site), temp = `${path}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`
-    await mkdir(this.config.dataDir, { recursive: true, mode: 0o700 })
-    try { await writeFile(temp, JSON.stringify({ version: 1, ...c, region: this.site.region }) + '\n', { mode: 0o600 }); await rename(temp, path) }
-    finally { await rm(temp, { force: true }) }
+  recoveryPath() { return join(this.config.dataDir, `${this.site.provider}-refresh.json`) }
+  async loadSession() {
+    const session = await readQoderSession(this.config, this.site)
+    if (qoderPath(this.config, this.site) === managedPath(this.config, this.site)) return { session }
+    // External credentials stay read-only. Bind their recovery file to the
+    // exact source session so replacing that source also switches accounts.
+    const sourceFingerprint = digest(`${qoderPath(this.config, this.site)}\0${JSON.stringify(session)}`)
+    try {
+      const recovered = await readQoderSession({ ...this.config, [this.site.credentialKey]: this.recoveryPath() }, this.site)
+      if (recovered.sourceFingerprint === sourceFingerprint) return { session: recovered, sourceFingerprint }
+    } catch (e) { if (e.code !== 'signed-out') throw e }
+    return { session, sourceFingerprint }
+  }
+  assertCurrent(epoch = this.epoch) {
+    if (this.signal.aborted) throw new CheckinError('cancelled', '插件已停止。')
+    if (epoch !== this.epoch) throw new CheckinError('account-changed', `${this.site.name} 登录账号已变化，请重新执行签到。`)
+  }
+  save(c, { epoch, replace = false, current = () => true, sourceFingerprint } = {}) {
+    const task = this.saving.then(async () => {
+      const check = () => {
+        this.assertCurrent(epoch)
+        if (!current()) throw new CheckinError('cancelled', '此次登录已取消。')
+      }
+      check()
+      const path = sourceFingerprint ? this.recoveryPath() : managedPath(this.config, this.site)
+      const temp = `${path}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`
+      await mkdir(this.config.dataDir, { recursive: true, mode: 0o700 })
+      try {
+        await writeFile(temp, JSON.stringify({ version: 1, ...c, ...(sourceFingerprint ? { sourceFingerprint } : {}), region: this.site.region }) + '\n', { mode: 0o600 })
+        check()
+        await rename(temp, path)
+        if (replace) this.epoch++
+      } finally { await rm(temp, { force: true }) }
+    })
+    this.saving = task.catch(() => {})
+    return task
   }
   needsUpgrade(c) { return qoderPath(this.config, this.site) === managedPath(this.config, this.site) && c.clientId !== CLIENT }
   async start() {
@@ -115,7 +146,8 @@ export class QoderAuth {
       const c = { ...this.grant(doc, { machineId: pending.machineId }), clientId: CLIENT }
       c.uid = await verifyIdentity(c.token, this.transport, this.signal, qoderIdentity(doc), this.site)
       if (pending !== this.pending || this.signal.aborted) return
-      await this.save(c); this.epoch++; this.identityCache = { tokenHash: digest(c.token), uid: c.uid }
+      await this.save(c, { replace: true, current: () => pending === this.pending })
+      this.identityCache = { tokenHash: digest(c.token), uid: c.uid }
       this.pending = undefined; this.state = { status: 'authorized' }
     } catch (e) {
       if (pending !== this.pending || this.signal.aborted) return
@@ -123,32 +155,39 @@ export class QoderAuth {
       this.pending = undefined; this.state = { status: 'failed', message: safeError(e).message }
     }
   }
-  async credential() {
+  async credential(options = {}) {
     if (this.reading) return this.reading
-    this.reading = this.readCredential()
+    this.reading = this.readCredential(options)
     try { return await this.reading } finally { this.reading = undefined }
   }
-  async readCredential() {
+  async readCredential({ beforeNetwork } = {}) {
     const epoch = this.epoch
-    let c = await readQoderSession(this.config, this.site), changed = false
+    const loaded = await this.loadSession(), { sourceFingerprint } = loaded
+    let c = loaded.session, changed = false
+    const credentialRevision = c.credentialRevision ?? digest(c.token)
+    this.assertCurrent(epoch)
     if (this.needsUpgrade(c)) throw new CheckinError('qoder-login-upgrade', `请在设置页重新连接 ${this.site.name}，升级为新版桌面端网页登录。`)
+    beforeNetwork?.(credentialRevision)
     if (c.expiresAtMs && c.expiresAtMs <= this.now() + 60000) {
       if (!c.refreshToken || c.refreshExpiresAtMs && c.refreshExpiresAtMs <= this.now()) throw new CheckinError('signed-out', `${this.site.name} 登录已过期，请在设置页重新登录。`)
       const doc = await this.transport.post(`${this.site.api}/api/v1/deviceToken/refresh`, headers(), { refresh_token: c.refreshToken, ...(c.machineId ? { machine_id: c.machineId } : {}) }, this.signal)
       const refreshed = this.grant(doc, c)
-      c = { ...c, ...refreshed }; changed = true
+      c = { ...c, ...refreshed, identityPending: true, credentialRevision }; changed = true
+      // Keep rotated tokens recoverable even if the next identity query fails.
+      await this.save(c, { epoch, sourceFingerprint })
     }
     // Server identity is authoritative; never infer identity from a token hash or stale local field.
     let uid
-    if (this.identityCache?.tokenHash === digest(c.token)) {
+    if (!c.identityPending && this.identityCache?.tokenHash === digest(c.token)) {
       uid = this.identityCache.uid
       if (c.uid && c.uid !== uid) throw new CheckinError('account-changed', `${this.site.name} 会话账号信息不一致，请重新登录。`)
     } else {
       uid = await verifyIdentity(c.token, this.transport, this.signal, c.uid, this.site)
+      this.assertCurrent(epoch)
       this.identityCache = { tokenHash: digest(c.token), uid }
     }
-    if (this.epoch !== epoch) throw new CheckinError('account-changed', `${this.site.name} 登录账号已变化，请重新执行签到。`)
-    if (qoderPath(this.config, this.site) === managedPath(this.config, this.site) && (changed || c.uid !== uid)) await this.save({ ...c, uid })
+    this.assertCurrent(epoch)
+    if (changed || c.uid !== uid || c.identityPending) await this.save({ ...c, uid, identityPending: false }, { epoch, sourceFingerprint })
     return { token: c.token, key: digest(`${this.site.provider}:${uid}`).slice(0, 24), ...(c.machineId ? { machineId: c.machineId } : {}), getMachineIdentity: () => this.getMachineIdentity(uid) }
   }
   async getMachineIdentity(uid) {
@@ -158,5 +197,5 @@ export class QoderAuth {
     return value
   }
   cancel() { clearTimeout(this.timer); this.pending = undefined; this.state = { status: 'idle' }; return this.status() }
-  async dispose() { this.controller.abort(); clearTimeout(this.timer); this.pending = undefined; await Promise.allSettled([this.polling, this.reading].filter(Boolean)) }
+  async dispose() { this.controller.abort(); clearTimeout(this.timer); this.pending = undefined; await Promise.allSettled([this.polling, this.reading, this.saving].filter(Boolean)) }
 }
