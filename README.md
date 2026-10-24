@@ -2,8 +2,6 @@
 
 <img src="icon.png" alt="SnailMann 蜗牛图标" width="80" height="80">
 
-使用 SnailMann DSH 插件统一的橙蓝蜗牛图标，通过 `./icon` 导出并随安装包分发。
-
 **每天挨个打开 AI 编程工具，只为点一下「签到」？把这件小事交给 DSH。**
 
 **dsh-credit-checkin-hub（多平台积分签到）** 是一款 **DSH Desktop 插件**，把 Trae CN、WorkBuddy 国内版、Qoder CN、Qoder 国际版和 MiniMax Code 国内版的每日积分领取放到一起。登录账号、选好平台和时间，之后由插件定时签到，少一点来回切换，也少一次「今天又忘领了」。
