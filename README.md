@@ -2,7 +2,7 @@
 
 DSH Desktop 插件：每天定时替你领取各平台送的每日积分，不用手动点。
 
-支持 **Trae CN、WorkBuddy 国内版、Qoder CN、Qoder 国际版、MiniMax Code 国内版**，默认北京时间 **每天 09:05** 执行。Qoder CN 每天 10:00 才开放新一轮，定时早于 10:00 时只有 Qoder 顺延到 10:00。
+支持 **Trae CN、WorkBuddy 国内版、Qoder CN、Qoder 国际版、MiniMax Code 国内版**，默认北京时间 **每天 11:00** 执行。如果把时间改到 10:00 之前，Qoder 会顺延到 10:00 开放新一轮后再领取。
 
 已验证版本：**DSH Desktop 0.12.1**，运行时 Node ≥ 22.19.0。
 
@@ -25,7 +25,7 @@ DSH Desktop 插件：每天定时替你领取各平台送的每日积分，不�
 重启后打开 **「设置 → 积分签到」**，或从「插件」页本插件详情页的配置区进入，两处是同一个面板。
 
 - **每日自动签到**：总开关，关掉后暂停定时任务，但仍可手动签到。
-- **每日签到时间**：选好时间点「保存时间」，默认北京时间 09:05。
+- **每日签到时间**：选好时间点「保存时间」，默认北京时间 11:00。
 - **平台开关**：五个平台各自独立，关掉的平台自动和手动都会跳过。
 - **立即签到已启用平台**：不用等定时任务，已签过的账号自动跳过。
 - **最近签到记录**：各平台的执行时间、结果和积分，失败会显示原因。
@@ -75,7 +75,7 @@ DSH Desktop 插件：每天定时替你领取各平台送的每日积分，不�
   name: dsh-credit-checkin
   config:
     enabled: true
-    time: '09:05'
+    time: '11:00'
     timezone: Asia/Shanghai
     providers: [trae, workbuddy, qoder, minimax]
     dataDir: /absolute/path/to/dsh-home/daily-checkin

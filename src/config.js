@@ -7,7 +7,7 @@ export const PROVIDERS = ['trae', 'workbuddy', 'qoder', 'qoder-global', 'minimax
 export function normalizeConfig(input = {}) {
   const enabled = input.enabled ?? true
   if (typeof enabled !== 'boolean') throw new Error('enabled 必须为布尔值')
-  const time = input.time ?? '09:05'
+  const time = input.time ?? '11:00'
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new Error('time 必须为 HH:mm')
   const timezone = input.timezone ?? 'Asia/Shanghai'
   new Intl.DateTimeFormat('en', { timeZone: timezone }).format()

@@ -1,6 +1,6 @@
 {
   "name": "dsh-credit-checkin",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "每天定时为 Trae CN、WorkBuddy、Qoder、MiniMax Code 领取每日积分，支持时间设置、平台开关和签到记录。",
   "type": "module",
   "main": "./src/index.js",

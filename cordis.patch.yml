@@ -3,6 +3,6 @@
       name: dsh-credit-checkin
       config:
         enabled: true
-        time: '09:05'
+        time: '11:00'
         timezone: Asia/Shanghai
         providers: [trae, workbuddy, qoder, minimax]
