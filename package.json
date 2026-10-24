@@ -1,6 +1,6 @@
 {
-  "name": "dsh-credit-checkin",
-  "version": "0.7.1",
+  "name": "dsh-credit-checkin-hub",
+  "version": "1.0.0",
   "description": "每天定时为 Trae CN、WorkBuddy、Qoder、MiniMax Code 领取每日积分，支持时间设置、平台开关和签到记录。",
   "type": "module",
   "main": "./src/index.js",
@@ -8,10 +8,11 @@
     ".": "./src/index.js",
     "./package.json": "./package.json",
     "./client": "./src/client.js",
+    "./icon": "./icon.png",
     "./locale/*": "./locale/*"
   },
   "bin": {
-    "dsh-credit-checkin": "./src/cli.js"
+    "dsh-credit-checkin-hub": "./src/cli.js"
   },
   "files": [
     "src",
@@ -19,6 +20,7 @@
     "README.md",
     "LICENSE",
     "locale",
+    "icon.png",
     "settings-preview.jpg"
   ],
   "scripts": {

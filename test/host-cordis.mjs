@@ -31,16 +31,17 @@ try {
   const fiber = ctx.plugin(plugin, { dataDir: dir, time: '23:59', providers: ['trae'] })
   await fiber.inertia
   assert.equal(fiber.state, 2)
-  assert.equal(typeof routes.get('/plugins/dsh-credit-checkin').handler, 'function')
+  assert.equal(typeof routes.get('/plugins/dsh-credit-checkin-hub').handler, 'function')
   // Read the localized metadata through a throwaway profile that declares this
   // checkout exactly like the Desktop plugin page does (link dependency).
   const root = fileURLToPath(new URL('..', import.meta.url))
   const profile = join(dir, 'profile')
   await mkdir(join(profile, 'node_modules'), { recursive: true })
-  await writeFile(join(profile, 'package.json'), JSON.stringify({ name: 'host-test', private: true, dependencies: { 'dsh-credit-checkin': `link:${root}` } }))
-  await symlink(root, join(profile, 'node_modules/dsh-credit-checkin'), 'dir')
-  const meta = readPluginMeta('dsh-credit-checkin', pathToFileURL(join(profile, 'package.json')).href)
-  assert.equal(meta.title.zh, '多平台积分签到')
+  await writeFile(join(profile, 'package.json'), JSON.stringify({ name: 'host-test', private: true, dependencies: { 'dsh-credit-checkin-hub': `link:${root}` } }))
+  await symlink(root, join(profile, 'node_modules/dsh-credit-checkin-hub'), 'dir')
+  const meta = readPluginMeta('dsh-credit-checkin-hub', pathToFileURL(join(profile, 'package.json')).href)
+  assert.equal(meta.title.zh, 'dsh-credit-checkin-hub')
+  assert.equal(meta.title.en, 'dsh-credit-checkin-hub')
   const definition = tools.get('daily_checkin_status')
   assert.ok(tools.get('daily_checkin_run'))
   const value = await definition.execute({})

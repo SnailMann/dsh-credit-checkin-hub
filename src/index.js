@@ -1,6 +1,6 @@
 import { Runner } from './runner.js'
 import { registerWeb } from './web.js'
-export const name = 'multi-app-credit-checkin'
+export const name = 'dsh-credit-checkin-hub'
 
 export function apply(ctx, config = {}) {
   ctx.effect(() => {

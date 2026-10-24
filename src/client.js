@@ -1,7 +1,7 @@
-window.__ModuleLoader__.load({ id: 'dsh-credit-checkin', factory: require => {
+window.__ModuleLoader__.load({ id: 'dsh-credit-checkin-hub', factory: require => {
   const React = require('react')
   const e = React.createElement
-  const API = '/plugins/dsh-credit-checkin'
+  const API = '/plugins/dsh-credit-checkin-hub'
   const names = { trae: 'Trae CN', workbuddy: 'WorkBuddy', qoder: 'Qoder CN', 'qoder-global': 'Qoder 国际版', minimax: 'MiniMax Code' }
   const providers = Object.keys(names)
   const labels = { claimed: '签到成功', 'already-claimed': '今日已签到', unavailable: '暂无可领活动', failed: '签到失败' }
@@ -93,10 +93,10 @@ window.__ModuleLoader__.load({ id: 'dsh-credit-checkin', factory: require => {
       } catch (err) { if (alive.current) { setMessage(err.message); setError(true) } }
       finally { if (alive.current) setBusy(false) }
     }
-    return e('section', { className: 'dci', 'aria-label': '多平台积分签到设置' },
+    return e('section', { className: 'dci', 'aria-label': 'dsh-credit-checkin-hub 设置' },
       e('style', null, css),
       e('header', { className: 'dci-header' },
-        e('div', null, e('h2', null, '多平台积分签到'), e('p', { className: 'muted' }, 'Trae CN · WorkBuddy · Qoder CN · Qoder 国际版 · MiniMax Code'), e('p', { className: 'muted' }, '设置每日签到时间，选择需要自动领取积分的平台。')),
+        e('div', null, e('h2', null, 'dsh-credit-checkin-hub'), e('p', { className: 'muted' }, 'Trae CN · WorkBuddy · Qoder CN · Qoder 国际版 · MiniMax Code'), e('p', { className: 'muted' }, '设置每日签到时间，选择需要自动领取积分的平台。')),
         data && e('span', { className: `dci-badge ${data.schedule.enabled ? 'on' : ''}` }, e('i'), data.running ? '正在签到' : data.schedule.enabled ? '自动签到已开启' : '自动签到已暂停')),
       message && e('div', { className: `dci-message ${error ? 'error' : ''}`, role: error ? 'alert' : 'status' }, message),
       data && (!data.minimax || !data.capabilities?.includes('qoder-global-login')) && e('div', { className: 'dci-message error', role: 'alert' }, '后台插件尚未更新，部分网页登录暂不可用。请点击菜单栏「Harness → 重启」；仅刷新设置页不会更新后台。'),
@@ -125,7 +125,7 @@ window.__ModuleLoader__.load({ id: 'dsh-credit-checkin', factory: require => {
   }
   function apply(ctx) {
     ctx.slots.inject('settings.section', () => ctx.slots.register({ name: 'settings.section', id: 'credit-checkin', order: 35, label: () => '积分签到' }, Panel))
-    ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({ name: 'plugins.bundle.config', key: 'dsh-credit-checkin' }, Panel))
+    ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({ name: 'plugins.bundle.config', key: 'dsh-credit-checkin-hub' }, Panel))
   }
-  return { name: 'multi-app-credit-checkin-settings', inject: ['slots'], apply }
+  return { name: 'dsh-credit-checkin-hub-settings', inject: ['slots'], apply }
 } })

@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "多平台积分签到",
+    "title": "dsh-credit-checkin-hub",
     "description": "每天定时为 Trae CN、WorkBuddy、Qoder、MiniMax Code 领取每日积分，支持时间设置、平台开关和签到记录。"
   }
 }
