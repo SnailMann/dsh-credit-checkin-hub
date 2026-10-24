@@ -21,33 +21,33 @@ try {
   await writeFile(join(dir, 'package.json'), JSON.stringify({
     name: 'registration-test',
     private: true,
-    dependencies: { 'dsh-daily-checkin': `link:${root}` },
-    dsh: { profile: { bundles: ['dsh-daily-checkin'] } },
+    dependencies: { 'dsh-credit-checkin': `link:${root}` },
+    dsh: { profile: { bundles: ['dsh-credit-checkin'] } },
   }, null, 2))
   // A user-owned override left over from an older manual install: the bundle
   // supplies the row, this block only carries custom configuration.
-  await writeFile(join(dir, 'cordis.patch.yml'), '# BEGIN managed dsh-daily-checkin\n- id: daily-checkin\n  name: dsh-daily-checkin\n  config:\n    time: "11:37"\n    providers: [qoder]\n# END managed dsh-daily-checkin\n')
-  await symlink(root, join(dir, 'node_modules/dsh-daily-checkin'), 'dir')
+  await writeFile(join(dir, 'cordis.patch.yml'), '# BEGIN managed dsh-credit-checkin\n- id: daily-checkin\n  name: dsh-credit-checkin\n  config:\n    time: "11:37"\n    providers: [qoder]\n# END managed dsh-credit-checkin\n')
+  await symlink(root, join(dir, 'node_modules/dsh-credit-checkin'), 'dir')
   const manager = Object.assign(Object.create(PluginManager.prototype), {
     profile: { dir, installAnchor: anchor },
     protectsManager: () => false,
     declaredRows: () => ({ rows: [], overrides: [] }),
   })
-  const row = (await manager.listBundles()).find(item => item.name === 'dsh-daily-checkin')
+  const row = (await manager.listBundles()).find(item => item.name === 'dsh-credit-checkin')
   assert.ok(row, 'local package appears in the real desktop plugin inventory')
   assert.equal(row.installed, true); assert.equal(row.enabled, true)
   assert.equal(row.error, undefined)
   assert.ok(row.meta.title.zh.includes('积分签到'))
   let profile = loadProfileDirectory('dsh', dir, anchor)
   let entries = composeEntries([...profile.layers.map(layer => layer.patches), profile.patches])
-  assert.equal(entries.filter(entry => entry.name === 'dsh-daily-checkin').length, 1)
-  assert.equal(entries.find(entry => entry.name === 'dsh-daily-checkin').config.time, '11:37')
+  assert.equal(entries.filter(entry => entry.name === 'dsh-credit-checkin').length, 1)
+  assert.equal(entries.find(entry => entry.name === 'dsh-credit-checkin').config.time, '11:37')
   const manifest = JSON.parse(await readFile(join(dir, 'package.json'), 'utf8'))
   manifest.dsh.profile.bundles = []
   await writeFile(join(dir, 'package.json'), JSON.stringify(manifest))
   profile = loadProfileDirectory('dsh', dir, anchor)
   entries = composeEntries([...profile.layers.map(layer => layer.patches), profile.patches])
-  assert.equal(entries.filter(entry => entry.name === 'dsh-daily-checkin').length, 0)
-  assert.equal((await manager.listBundles()).find(item => item.name === 'dsh-daily-checkin').enabled, false)
+  assert.equal(entries.filter(entry => entry.name === 'dsh-credit-checkin').length, 0)
+  assert.equal((await manager.listBundles()).find(item => item.name === 'dsh-credit-checkin').enabled, false)
   console.log('PASS: actual desktop inventory discovers local plugin; enabled composes one runner, disabled composes none; custom config preserved')
 } finally { await rm(home, { recursive: true, force: true }) }

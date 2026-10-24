@@ -1,7 +1,7 @@
 {
-  "name": "dsh-daily-checkin",
-  "version": "0.6.1",
-  "description": "Trae CN / WorkBuddy / Qoder CN / Qoder 国际版 / MiniMax Code 积分签到：每日定时领取，支持可视化设置、平台开关和签到记录。",
+  "name": "dsh-credit-checkin",
+  "version": "0.7.0",
+  "description": "每天定时为 Trae CN、WorkBuddy、Qoder、MiniMax Code 领取每日积分，支持时间设置、平台开关和签到记录。",
   "type": "module",
   "main": "./src/index.js",
   "exports": {
@@ -11,17 +11,13 @@
     "./locale/*": "./locale/*"
   },
   "bin": {
-    "dsh-daily-checkin": "./src/cli.js"
+    "dsh-credit-checkin": "./src/cli.js"
   },
   "files": [
     "src",
     "cordis.patch.yml",
     "README.md",
     "LICENSE",
-    "THIRD-PARTY-LICENSE",
-    "MINIMAX-LICENSE",
-    "QODER-LICENSE",
-    "NOTICE.md",
     "locale",
     "settings-preview.jpg"
   ],

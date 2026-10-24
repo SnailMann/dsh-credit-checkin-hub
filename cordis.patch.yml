@@ -1,6 +1,6 @@
 - insert:
     - id: daily-checkin
-      name: dsh-daily-checkin
+      name: dsh-credit-checkin
       config:
         enabled: true
         time: '09:05'

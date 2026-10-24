@@ -1,5 +1,5 @@
 // Adapted from dsh-connect (MIT), Copyright (c) 2026 yembors64632.
-// Read local byteCrypto envelopes; see THIRD-PARTY-LICENSE.
+// Read local byteCrypto envelopes; see the third-party notices in LICENSE.
 import { createDecipheriv, createHash } from "node:crypto";
 const JOE = Buffer.from([191,192,216,250,122,246,220,97,31,254,98,27,8,72,71,176,135,99,96,18,127,101,203,104,211,102,191,125,37,72,150,156,51,229,121,35,17,153,141,177,110,131,150,128,172,255,254,6,18,140,55,62,236,249,135,64,135,12,117,4,89,149,168,209]);
 const HOE = Buffer.from([246,204,26,232,232,70,129,109,223,146,169,242,23,241,105,145,50,196,165,42,254,120,3,54,244,207,209,85,53,6,138,106,175,148,31,204,186,186,165,182,87,142,49,10,39,110,26,154,86,56,173,125,18,64,198,225,99,99,83,82,191,134,76,170]);

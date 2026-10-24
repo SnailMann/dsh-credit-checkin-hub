@@ -24,7 +24,7 @@ try {
       if (Object.values(result.results ?? {}).some(r => r.status === 'failed') || result.status === 'busy') process.exitCode = 1
     } finally { await runner.dispose() }
   } else {
-    console.log('Usage: dsh-daily-checkin <doctor|status|run|tick> [--config config.json] [--data-dir PATH]')
+    console.log('Usage: dsh-credit-checkin <doctor|status|run|tick> [--config config.json] [--data-dir PATH]')
     process.exitCode = 2
   }
 } catch (e) { console.error(JSON.stringify(safeError(e))); process.exitCode = 1 }

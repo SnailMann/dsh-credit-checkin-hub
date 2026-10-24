@@ -1,7 +1,7 @@
-window.__ModuleLoader__.load({ id: 'dsh-daily-checkin', factory: require => {
+window.__ModuleLoader__.load({ id: 'dsh-credit-checkin', factory: require => {
   const React = require('react')
   const e = React.createElement
-  const API = '/plugins/dsh-daily-checkin'
+  const API = '/plugins/dsh-credit-checkin'
   const names = { trae: 'Trae CN', workbuddy: 'WorkBuddy', qoder: 'Qoder CN', 'qoder-global': 'Qoder 国际版', minimax: 'MiniMax Code' }
   const providers = Object.keys(names)
   const labels = { claimed: '签到成功', 'already-claimed': '今日已签到', unavailable: '暂无可领活动', failed: '签到失败' }
@@ -125,7 +125,7 @@ window.__ModuleLoader__.load({ id: 'dsh-daily-checkin', factory: require => {
   }
   function apply(ctx) {
     ctx.slots.inject('settings.section', () => ctx.slots.register({ name: 'settings.section', id: 'credit-checkin', order: 35, label: () => '积分签到' }, Panel))
-    ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({ name: 'plugins.bundle.config', key: 'dsh-daily-checkin' }, Panel))
+    ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({ name: 'plugins.bundle.config', key: 'dsh-credit-checkin' }, Panel))
   }
   return { name: 'multi-app-credit-checkin-settings', inject: ['slots'], apply }
 } })

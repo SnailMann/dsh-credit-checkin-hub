@@ -3,7 +3,7 @@ import { safeError } from './errors.js'
 import { PROVIDERS } from './config.js'
 import { VERSION } from './version.js'
 
-export const API = '/plugins/dsh-daily-checkin'
+export const API = '/plugins/dsh-credit-checkin'
 const loopback = hostname => ['127.0.0.1', 'localhost', '[::1]'].includes(hostname)
 function trusted(req) {
   try {
